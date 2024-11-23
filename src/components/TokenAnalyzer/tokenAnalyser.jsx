@@ -50,8 +50,8 @@ const TokenAnalyzer = () => {
 
     for (const [model, count] of Object.entries(tokenCounts)) {
       costs[model] = {
-        input: (count * MODEL_COSTS[model].input) / 1000,
-        output: (count * MODEL_COSTS[model].output) / 1000,
+        input: (count * MODEL_COSTS[model].input) / 1000000,
+        output: (count * MODEL_COSTS[model].output) / 1000000,
       };
     }
 

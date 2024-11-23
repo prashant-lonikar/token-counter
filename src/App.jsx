@@ -89,8 +89,8 @@ const App = () => {
           ? Math.ceil(gptTokenCount * 1.15)
           : gptTokenCount;
 
-        const inputCost = (tokenCount * config.inputCost) / 1000;
-        const outputCost = (tokenCount * config.outputCost) / 1000;
+        const inputCost = (tokenCount * config.inputCost) / 1000000;
+        const outputCost = (tokenCount * config.outputCost) / 1000000;
 
         acc[modelId] = {
           name: config.name,
@@ -98,7 +98,7 @@ const App = () => {
           tokenCount,
           inputCost,
           outputCost,
-          totalCost: inputCost + outputCost,
+          contextWindow: config.contextWindow,
         };
 
         return acc;
@@ -204,6 +204,11 @@ const App = () => {
                   {result.tokenCount.toLocaleString()}
                 </p>
 
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Context Window: </span>
+                  {MODEL_CONFIGS[modelId].contextWindow.toLocaleString()} tokens
+                </p>
+
                 <div className="text-sm space-y-1">
                   <p>
                     <span className="text-gray-600">Input Cost: </span>$
@@ -212,10 +217,6 @@ const App = () => {
                   <p>
                     <span className="text-gray-600">Output Cost: </span>$
                     {result.outputCost.toFixed(4)}
-                  </p>
-                  <p className="text-base font-medium">
-                    <span className="text-gray-600">Total Cost: </span>$
-                    {result.totalCost.toFixed(4)}
                   </p>
                 </div>
               </div>
