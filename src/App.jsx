@@ -3,6 +3,7 @@ import { encode } from "gpt-tokenizer";
 import { MODEL_CONFIGS } from "./constants/models";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfjsWorker from "pdfjs-dist/build/pdf.worker.entry";
+import { Analytics } from "@vercel/analytics/react";
 
 // Set up the PDF.js worker
 if (typeof window !== "undefined" && "Worker" in window) {
