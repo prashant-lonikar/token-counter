@@ -1,32 +1,70 @@
 import React from "react";
 import { encode } from "gpt-tokenizer";
 import { MODEL_CONFIGS } from "./constants/models";
+import * as pdfjsLib from "pdfjs-dist";
+import pdfjsWorker from "pdfjs-dist/build/pdf.worker.entry";
+
+// Set up the PDF.js worker
+if (typeof window !== "undefined" && "Worker" in window) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+}
 
 const App = () => {
   const [text, setText] = React.useState("");
   const [results, setResults] = React.useState(null);
   const [fileName, setFileName] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
+  const [progress, setProgress] = React.useState(null);
 
-  const handleTextUpload = async (file) => {
+  const readPdfFile = async (file) => {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const numPages = pdf.numPages;
+    let fullText = "";
+
+    for (let i = 1; i <= numPages; i++) {
+      setProgress(`Processing page ${i} of ${numPages}`);
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map((item) => item.str).join(" ");
+      fullText += pageText + "\n";
+    }
+
+    return fullText;
+  };
+
+  const readTextFile = async (file) => {
+    return await file.text();
+  };
+
+  const handleFileUpload = async (file) => {
     setIsLoading(true);
+    setProgress(null);
     try {
-      const text = await file.text();
+      let text;
+      if (file.type === "application/pdf") {
+        text = await readPdfFile(file);
+      } else if (file.type === "text/plain") {
+        text = await readTextFile(file);
+      } else {
+        throw new Error("Unsupported file type");
+      }
+
       setText(text);
       setFileName(file.name);
-      // Automatically analyze after upload
       analyzeText(text);
     } catch (error) {
       console.error("Error reading file:", error);
       alert("Error reading file. Please try again.");
     }
     setIsLoading(false);
+    setProgress(null);
   };
 
   const handleFileChange = (event) => {
     const file = event.target.files?.[0];
     if (file) {
-      handleTextUpload(file);
+      handleFileUpload(file);
     }
   };
 
@@ -34,7 +72,7 @@ const App = () => {
     event.preventDefault();
     const file = event.dataTransfer.files?.[0];
     if (file) {
-      handleTextUpload(file);
+      handleFileUpload(file);
     }
   };
 
@@ -80,7 +118,6 @@ const App = () => {
       <h1 className="text-2xl font-bold mb-4">Token Counter</h1>
 
       <div className="mb-6">
-        {/* File Drop Zone */}
         <div
           onDrop={handleDrop}
           onDragOver={handleDragOver}
@@ -91,7 +128,7 @@ const App = () => {
             id="fileInput"
             onChange={handleFileChange}
             className="hidden"
-            accept=".txt"
+            accept=".txt,.pdf"
           />
           <label
             htmlFor="fileInput"
@@ -116,16 +153,19 @@ const App = () => {
                 : "Drop files here or click to upload"}
             </span>
             <span className="text-sm text-gray-500 mt-1">
-              Supports .txt files
+              Supports .txt and .pdf files
             </span>
           </label>
         </div>
+
+        {isLoading && progress && (
+          <div className="text-sm text-blue-600 mb-2">{progress}</div>
+        )}
 
         {fileName && (
           <div className="text-sm text-gray-600 mb-2">Uploaded: {fileName}</div>
         )}
 
-        {/* Text Area */}
         <textarea
           className="w-full h-32 p-2 border rounded mb-4"
           placeholder="Or paste your text here..."
@@ -144,7 +184,6 @@ const App = () => {
         </button>
       </div>
 
-      {/* Results Section */}
       {results && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {Object.entries(results).map(([modelId, result]) => (
